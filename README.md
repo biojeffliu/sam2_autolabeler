@@ -1,0 +1,1 @@
+# SAM2 Autolabeler v2
