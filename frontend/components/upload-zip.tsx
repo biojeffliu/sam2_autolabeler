@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { BACKEND_URL } from "@/lib/api"
 
-export function ZipUploader({ onUploaded }: { onUploaded?: (folder: string) => void }) {
+export default function ZipUploader({ onUploaded }: { onUploaded?: (folder: string) => void }) {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return

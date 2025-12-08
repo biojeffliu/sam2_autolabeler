@@ -27,7 +27,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { toast, useSonner } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ZipUploader } from "@/components/upload-zip"
+import ZipUploader from "@/components/upload-zip"
 import { FramePlayer } from "@/components/frame-player"
 import { BACKEND_URL } from "@/lib/api"
 
@@ -141,7 +141,7 @@ export function ImageSequencePlayer() {
 
 
       {/* Folder Select */}
-      <div className="flex items-center gap-2">
+      {/* <div className="flex items-center gap-2">
         <Folder className="h-4 w-4" />
         <Select
           value={currentFolder}
@@ -165,7 +165,7 @@ export function ImageSequencePlayer() {
 
           </SelectTrigger>
         </Select>
-      </div>
+      </div> */}
       {/* Frame Sequence Player */}
       <FramePlayer
         images={images}
