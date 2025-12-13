@@ -5,6 +5,8 @@ import os
 import shutil
 from datetime import datetime
 import json
+from pathlib import Path
+from PIL import Image
 
 router = APIRouter(prefix="/folders", tags=["folders"])
 
@@ -93,23 +95,55 @@ def get_metadata_path(folder_name: str):
     return UPLOADS_DIR / folder_name / METADATA_FILENAME
 
 
+
 def load_metadata(folder_name: str) -> FolderMetadata:
     folder_path = UPLOADS_DIR / folder_name
     file_path = folder_path / METADATA_FILENAME
-    
+
+    # Helper: get first image's width/height
+    def get_first_image_size(path: Path):
+        image_files = sorted(
+            list(path.glob("*.jpg")) +
+            list(path.glob("*.jpeg")) +
+            list(path.glob("*.png"))
+        )
+        if not image_files:
+            return None, None
+        try:
+            with Image.open(image_files[0]) as img:
+                return img.width, img.height
+        except Exception as e:
+            print(f"Failed to read image size for {folder_name}: {e}")
+            return None, None
+
     if not file_path.exists():
+        # FOLDER HAS NO METADATA → CREATE DEFAULT
         try:
             ctime = os.path.getctime(folder_path)
             created_at = datetime.fromtimestamp(ctime)
         except:
             created_at = datetime.now()
 
+        # Count frames
+        num_frames = (
+            len(list(folder_path.glob("*.jpg"))) +
+            len(list(folder_path.glob("*.jpeg"))) +
+            len(list(folder_path.glob("*.png")))
+        )
+
+        # Get width/height from first frame
+        width, height = get_first_image_size(folder_path)
+
         default_data = FolderMetadata(
             name=folder_name,
             objects={},
             description="",
-            upload_date=created_at
+            upload_date=created_at,
+            num_frames=num_frames,
+            width=width,
+            height=height
         )
+
         save_metadata(folder_name, default_data)
         return default_data
 
@@ -119,7 +153,14 @@ def load_metadata(folder_name: str) -> FolderMetadata:
         return FolderMetadata(**data)
     except Exception as e:
         print(f"Error loading metadata for {folder_name}: {e}")
-        return FolderMetadata(name=folder_name, upload_date=datetime.now())
+
+        width, height = get_first_image_size(folder_path)
+        return FolderMetadata(
+            name=folder_name,
+            upload_date=datetime.now(),
+            width=width,
+            height=height
+        )
     
 def save_metadata(folder_name: str, data: FolderMetadata):
     file_path = get_metadata_path(folder_name)

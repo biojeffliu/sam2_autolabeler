@@ -10,7 +10,7 @@ import { PlaybackControls } from "@/components/video-player/playback-controls"
 import { ObjectsPanel } from "@/components/video-player/objects-panel"
 import { ClickModeSelector } from "@/components/video-player/click-mode-selector"
 import { useFetchFolders, useFetchImages, FolderMetadata } from "@/hooks/use-backend"
-import { useLoadSam2 } from "@/hooks/use-sam2"
+import { useLoadSam2, useSegmentationClick } from "@/hooks/use-sam2"
 
 
 interface Click {
@@ -53,10 +53,10 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
   // Get current dataset info
   // const currentDatasetInfo = mockDatasets.find((f) => f.name === selectedDataset)
-  const totalFrames = 0
 
   // Generate placeholder image URLs (replace with actual backend URLs)
   const { images, isLoading: imagesLoading, error: imagesError, refetch } = useFetchImages(selectedDataset)
+  const totalFrames = images.length
   // Playback loop
   React.useEffect(() => {
     if (!isPlaying || totalFrames === 0) return
@@ -75,10 +75,22 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
   }, [isPlaying, fps, totalFrames])
 
   // Handle canvas click
+  const { sendClick, overlayUrl, isLoading: isSegLoading, error: segError } = useSegmentationClick()
   const handleCanvasClick = React.useCallback(
-    (x: number, y: number) => {
-      if (!selectedObjectId) return
+    async (x: number, y: number) => {
+      if (!selectedObjectId || !isSam2Loaded) return
 
+      // send click to backend
+      const newOverlay = await sendClick({
+        folder: selectedDataset,
+        frameIndex: currentFrame,
+        x,
+        y,
+        isPositive: clickMode === "positive",
+        objectId: Number(selectedObjectId),
+      })
+
+      // Update local click markers
       const newClick: Click = {
         x,
         y,
@@ -89,16 +101,30 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
       setClicks((prev) => [...prev, newClick])
 
-      // Update label count for the object
+      // Update object label count
       setObjects((prev) =>
-        prev.map((obj) => (obj.id === selectedObjectId ? { ...obj, labelCount: obj.labelCount + 1 } : obj)),
+        prev.map((obj) =>
+          obj.id === selectedObjectId ? { ...obj, labelCount: obj.labelCount + 1 } : obj,
+        ),
       )
 
-      // TODO: Call backend to generate mask
+      // Apply overlay mask
+      if (newOverlay) {
+        setMasks((prev) => ({
+          ...prev,
+          [currentFrame]: newOverlay,
+        }))
+      }
     },
-    [selectedObjectId, clickMode, currentFrame],
+    [
+      selectedDataset,
+      currentFrame,
+      selectedObjectId,
+      clickMode,
+      isSam2Loaded,
+      sendClick,
+    ]
   )
-
   // Object management
   const handleCreateObject = (name: string, className: string) => {
     const newObject: SegmentObject = {

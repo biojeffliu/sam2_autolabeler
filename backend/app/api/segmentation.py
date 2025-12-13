@@ -177,16 +177,21 @@ async def get_frame(req: GetFrameRequest):
 
 @router.post("/reset-mask")
 async def reset_masks(req: ResetMaskRequest):
-    folder_path = safe_folder_path(req.folder)
-    MASK_STORE.clear_frame(folder_path, req.frame_idx)
+    MASK_STORE.clear_frame(req.folder, req.frame_idx)
     return {
         "status": "success"
     }
 
 @router.post("/reset-masks-folder")
 async def reset_masks_folder(req: ResetMasksFolderRequest):
-    folder_path = safe_folder_path(req.folder)
-    MASK_STORE.delete_masks_folder(folder_path)
+    MASK_STORE.delete_masks_folder(req.folder)
     return {
         "status": "success"
+    }
+
+@router.get("/debug/mask-store")
+def debug_mask_store():
+    return {
+        "folders": list(MASK_STORE.store.keys()),
+        "objs": {folder: list(MASK_STORE.objs[folder].keys()) for folder in MASK_STORE.objs},
     }

@@ -3,7 +3,7 @@
 import { useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { BACKEND_URL } from "@/lib/api"
 
@@ -44,32 +44,42 @@ export default function ZipUploader({ onUploaded }: { onUploaded?: (folder: stri
   })
 
   return (
-    <Card className="border border-muted">
-      <CardContent
-        {...getRootProps()}
-        className="relative flex items-center justify-center py-10 cursor-pointer text-center h-40"
-      >
-        <input {...getInputProps()} />
+    <Card className="w-full">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="space-y-2">
+            <CardTitle>Upload Dataset</CardTitle>
+            <CardDescription>Upload a ZIP file containing your dataset</CardDescription>
+          </div>
+      </CardHeader>
+        <CardContent>
+          <Card className="border border-muted">
+            <CardContent
+              {...getRootProps()}
+              className="relative flex items-center justify-center py-10 cursor-pointer text-center h-40"
+            >
+              <input {...getInputProps()} />
 
-        <div className="opacity-0 pointer-events-none">
-          <p className="text-sm mb-3">placeholder</p>
-          <Button variant="secondary">Choose File</Button>
-        </div>
+              <div className="opacity-0 pointer-events-none">
+                <p className="text-sm mb-3">placeholder</p>
+                <Button variant="secondary">Choose File</Button>
+              </div>
 
-        {/* Overlay changes on drag state */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {isDragActive ? (
-            <p className="text-sm text-muted-foreground">Drop the ZIP file here</p>
-          ) : (
-            <>
-              <p className="text-sm mb-3 text-muted-foreground">
-                Drag & drop a ZIP file, or click to upload
-              </p>
-              <Button variant="secondary">Choose File</Button>
-            </>
-          )}
-        </div>
-      </CardContent>
+              {/* Overlay changes on drag state */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                {isDragActive ? (
+                  <p className="text-sm text-muted-foreground">Drop the ZIP file here</p>
+                ) : (
+                  <>
+                    <p className="text-sm mb-3 text-muted-foreground">
+                      Drag & drop a ZIP file, or click to upload
+                    </p>
+                    <Button variant="secondary">Choose File</Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </CardContent>
     </Card>
   )
 }

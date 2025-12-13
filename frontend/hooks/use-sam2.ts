@@ -3,6 +3,16 @@
 import * as React from "react"
 import { BACKEND_URL } from "@/lib/api"
 import { toast } from "sonner"
+import { Parkinsans } from "next/font/google"
+
+interface SegmentClickParams {
+  folder: string
+  frameIndex: number
+  x: number
+  y: number
+  isPositive: boolean
+  objectId: number
+}
 
 export function useLoadSam2() {
   const [isLoading, setIsLoading] = React.useState(false)
@@ -48,4 +58,47 @@ export function useLoadSam2() {
   }, [])
 
   return { loadSam2, isLoading, error, modelState }
+}
+
+export function useSegmentationClick() {
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [overlayUrl, setOverlayUrl] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const sendClick = React.useCallback(async (params: SegmentClickParams) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/segmentation/click`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          frame_index: params.frameIndex,
+          folder: params.folder,
+          x: params.x,
+          y: params.y,
+          is_positive: params.isPositive,
+          object_id: params.objectId
+        }),
+      })
+
+      if (!res.ok) throw new Error(`Server returned ${res.status}`)
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob)
+
+      setOverlayUrl(url)
+      return url
+    } catch (err) {
+      console.error("Segmentation click failed:", err)
+      setError("Segmentation failed")
+      toast.error("Segmentation failed", { description: `${err}` })
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+  return { sendClick, overlayUrl, isLoading, error }
+
 }

@@ -9,6 +9,7 @@ export interface FolderMetadata {
   objects: Record<string, number>
   description: string
   upload_date: string
+  num_frames: number
 }
 
 export function useFetchFolders() {

@@ -37,7 +37,7 @@ export function PlaybackControls({
           disabled={totalFrames === 0}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Frame {currentFrame + 1}</span>
+          <span>Frame {currentFrame}</span>
           <span>{totalFrames} frames</span>
         </div>
       </div>

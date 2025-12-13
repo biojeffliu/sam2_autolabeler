@@ -14,3 +14,4 @@ class FolderMetadata(BaseModel):
     objects: dict[str, int] = {} # Key: Object ID, Value: Num Segmentations
     description: str = ""
     upload_date: datetime
+    num_frames: int

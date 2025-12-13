@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Star } from "lucide-react"
 import { useFrameBuffer } from "@/hooks/use-frame-buffer"
 import { getClassColor } from "@/lib/cocos-classes"
 
@@ -69,26 +70,25 @@ export function VideoCanvas({ images, currentFrame, clicks, objects, masks, onCa
       }
     })
 
-    clicks.forEach((click) => {
-      ctx.beginPath()
-      ctx.moveTo(click.x, click.y - 8)
-      for (let i = 1; i <= 5; i++) {
-        const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2
-        const r = i % 2 === 0 ? 8 : 4
-        ctx.lineTo(click.x + r * Math.cos(angle), click.y + r * Math.sin(angle))
-      }
-      ctx.closePath()
-      ctx.fillStyle = click.type === "positive" ? "#22c55e" : "#ef4444"
-      ctx.fill()
-      ctx.strokeStyle = "#ffffff"
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-    })
   }, [currentFrame, images, clicks, objects, masks, getImage, isReady])
 
   return (
     <div ref={containerRef} className="relative w-full aspect-video bg-muted rounded-lg overflow-hidden">
       <canvas ref={canvasRef} onClick={handleClick} className="w-full h-full object-contain cursor-crosshair" />
+      {clicks.map((click, index) => (
+        <div
+          key={index}
+          className="absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
+          style={{
+            left: `${click.x}px`,
+            top: `${click.y}px`,
+            color: click.type === "positive" ? "#22c55e" : "#ef4444"
+          }}
+        >
+          <Star className="h-4 w-4 fill-current drop-shadow" />
+        </div>
+      ))}
+
       {!isReady && images.length > 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <p className="text-sm text-muted-foreground">Loading frame...</p>
