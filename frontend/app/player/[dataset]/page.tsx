@@ -102,14 +102,14 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
       if (!res) return
 
-      for (const obj of res.objects) {
-        const bitmap = await decodeMask(obj.maskPng)
+      for (const obj of res.updated_masks) {
+        const bitmap = await decodeMask(obj.mask_png)
 
         setMasks(prev => ({
           ...prev,
           [res.frame_index]: {
             ...(prev[res.frame_index] ?? {}),
-            [obj.objectId]:bitmap,
+            [obj.object_id]:bitmap,
           },
         }))
       }

@@ -21,7 +21,10 @@ interface MaskUpdate {
 
 interface SegmentationResponse {
   frame_index: number
-  objects: MaskUpdate[]
+  updated_masks: {
+    object_id: number
+    mask_png: string
+  }[]
 }
 
 export function useLoadSam2() {

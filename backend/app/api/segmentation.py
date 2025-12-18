@@ -52,7 +52,6 @@ async def delete_object(req: DeleteObjRequest):
 @router.post("/click")
 async def process_click(req: SegmentRequest):
     folder_path = safe_folder_path(req.folder)
-    
     engine = SAM2Engine.get_instance()
 
     state = engine.load_video_once(str(folder_path))
@@ -65,10 +64,6 @@ async def process_click(req: SegmentRequest):
     if req.frame_index >= len(frame_files):
         raise HTTPException(400, "Invalid frame index")
 
-    image = cv2.imread(str(frame_files[req.frame_index]))
-    if image is None:
-        raise HTTPException(500, "Failed to read frame")
-
     point = np.array([[req.x, req.y]], dtype=np.float32)
     label = np.array([1 if req.is_positive else 0], dtype=np.int32)
 
@@ -80,27 +75,23 @@ async def process_click(req: SegmentRequest):
         labels=label,
     )
 
+    updated_masks = []
+
     for idx, obj_id in enumerate(out_obj_ids):
         prob = torch.sigmoid(out_logits[idx])
         mask = (prob > 0.5).int().squeeze().cpu().numpy().astype(np.uint8)
-        MASK_STORE.save_mask(req.folder, req.frame_index, int(obj_id), mask)
 
-    masks = MASK_STORE.get_masks(req.folder, req.frame_index)
+        obj_id = int(obj_id)
+        MASK_STORE.save_mask(req.folder, req.frame_index, obj_id, mask)
 
-    overlay = make_overlay(image, masks)
-    success, buffer = cv2.imencode(".jpg", overlay)
-    if not success:
-        raise HTTPException(500, "Failed to encode overlay image")
-
+        updated_masks.append({
+            "object_id": obj_id,
+            "mask_png": encode_mask_png(mask),
+        })
+    
     return {
         "frame_index": req.frame_index,
-        "objects": [
-            {
-                "object_id": int(obj_id),
-                "mask_png": encode_mask_png(mask),
-            }
-            for obj_id, mask in updated_masks
-        ]
+        "updated_masks": updated_masks,
     }
 
 @router.post("/propagate-masks")
