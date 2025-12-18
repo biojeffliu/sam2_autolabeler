@@ -10,6 +10,8 @@ export interface FolderMetadata {
   description: string
   upload_date: string
   num_frames: number
+  width: number
+  height: number
 }
 
 export function useFetchFolders() {
@@ -40,7 +42,16 @@ export function useFetchFolders() {
   }, [fetchFolders])
   const folderNames = React.useMemo(() => folders.map(f => f.name), [folders])
 
-  return { folders, folderNames, isLoading, error, refetch: fetchFolders }
+  const folderMap = React.useMemo<Record<string, FolderMetadata>>(
+    () =>
+      folders.reduce((acc, folder) => {
+        acc[folder.name] = folder
+        return acc
+      }, {} as Record<string, FolderMetadata>),
+    [folders]
+  )
+
+  return { folders, folderMap, folderNames, isLoading, error, refetch: fetchFolders }
 }
 
 export function useFetchImages(folderName: string) {

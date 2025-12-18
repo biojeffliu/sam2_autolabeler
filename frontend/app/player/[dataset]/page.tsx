@@ -14,24 +14,34 @@ import { useLoadSam2, useSegmentationClick } from "@/hooks/use-sam2"
 
 
 interface Click {
-  x: number
-  y: number
+  normalizedX: number
+  normalizedY: number
   type: "positive" | "negative"
-  objectId: string
+  objectId: number
   frame: number
 }
 
 interface SegmentObject {
-  id: string
+  id: number
   name: string
   className: string
   labelCount: number
   visible: boolean
 }
 
+async function decodeMask(maskBase64: string): Promise<ImageBitmap> {
+  const blob = await fetch(`data:image/png;base64,${maskBase64}`).then(r => r.blob())
+  return await createImageBitmap(blob)
+}
+
 export default function VideoPlayerPage({ params }: { params: Promise<{ dataset: string }> }) {
+  type MaskStore = {
+    [frameIndex: number]: {
+      [objectId: number]: ImageBitmap
+    }
+  }
   const resolvedParams = React.use(params)
-  const { folders, folderNames, isLoading: foldersLoading, error: foldersError } = useFetchFolders()
+  const { folders, folderMap, folderNames, isLoading: foldersLoading, error: foldersError } = useFetchFolders()
   
 
   // Dataset and frame state
@@ -42,22 +52,20 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
   // Objects and clicks state
   const [objects, setObjects] = React.useState<SegmentObject[]>([])
-  const [selectedObjectId, setSelectedObjectId] = React.useState<string | null>(null)
+  const [selectedObjectId, setSelectedObjectId] = React.useState<number | null>(null)
+  const [nextObjectId, setNextObjectId] = React.useState(0)
   const [clickMode, setClickMode] = React.useState<"positive" | "negative">("positive")
   const [clicks, setClicks] = React.useState<Click[]>([])
-  const [masks, setMasks] = React.useState<Record<string, ImageData | null>>({})
+  const [masks, setMasks] = React.useState<MaskStore>({})
 
   const { loadSam2, isLoading: isSam2Loading, error: sam2Error, modelState } = useLoadSam2()
 
   const isSam2Loaded = Boolean(modelState)
 
-  // Get current dataset info
-  // const currentDatasetInfo = mockDatasets.find((f) => f.name === selectedDataset)
-
-  // Generate placeholder image URLs (replace with actual backend URLs)
   const { images, isLoading: imagesLoading, error: imagesError, refetch } = useFetchImages(selectedDataset)
   const totalFrames = images.length
-  // Playback loop
+  const currentFolderMetadata = folderMap[selectedDataset]
+
   React.useEffect(() => {
     if (!isPlaying || totalFrames === 0) return
 
@@ -75,25 +83,41 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
   }, [isPlaying, fps, totalFrames])
 
   // Handle canvas click
-  const { sendClick, overlayUrl, isLoading: isSegLoading, error: segError } = useSegmentationClick()
+  const { sendClick, isLoading: isSegLoading, error: segError } = useSegmentationClick()
   const handleCanvasClick = React.useCallback(
-    async (x: number, y: number) => {
-      if (!selectedObjectId || !isSam2Loaded) return
+    async (normalizedX: number, normalizedY: number) => {
+      if (selectedObjectId === null || !isSam2Loaded) return
+      const x = Math.round(normalizedX * currentFolderMetadata.width)
+      const y = Math.round(normalizedY * currentFolderMetadata.height)
 
       // send click to backend
-      const newOverlay = await sendClick({
+      const res = await sendClick({
         folder: selectedDataset,
         frameIndex: currentFrame,
-        x,
-        y,
+        x: x,
+        y: y,
         isPositive: clickMode === "positive",
-        objectId: Number(selectedObjectId),
+        objectId: selectedObjectId,
       })
+
+      if (!res) return
+
+      for (const obj of res.objects) {
+        const bitmap = await decodeMask(obj.maskPng)
+
+        setMasks(prev => ({
+          ...prev,
+          [res.frame_index]: {
+            ...(prev[res.frame_index] ?? {}),
+            [obj.objectId]:bitmap,
+          },
+        }))
+      }
 
       // Update local click markers
       const newClick: Click = {
-        x,
-        y,
+        normalizedX,
+        normalizedY,
         type: clickMode,
         objectId: selectedObjectId,
         frame: currentFrame,
@@ -107,14 +131,6 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
           obj.id === selectedObjectId ? { ...obj, labelCount: obj.labelCount + 1 } : obj,
         ),
       )
-
-      // Apply overlay mask
-      if (newOverlay) {
-        setMasks((prev) => ({
-          ...prev,
-          [currentFrame]: newOverlay,
-        }))
-      }
     },
     [
       selectedDataset,
@@ -125,20 +141,23 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
       sendClick,
     ]
   )
-  // Object management
   const handleCreateObject = (name: string, className: string) => {
-    const newObject: SegmentObject = {
-      id: crypto.randomUUID(),
-      name,
-      className,
-      labelCount: 0,
-      visible: true,
-    }
-    setObjects((prev) => [...prev, newObject])
-    setSelectedObjectId(newObject.id)
+    setObjects((prev) => {
+      const newObject: SegmentObject = {
+        id: nextObjectId,
+        name,
+        className,
+        labelCount: 0,
+        visible: true,
+      }
+      return [...prev, newObject]
+    })
+
+    setSelectedObjectId(nextObjectId)
+    setNextObjectId((id) => id + 1)
   }
 
-  const handleDeleteObject = (id: string) => {
+  const handleDeleteObject = (id: number) => {
     setObjects((prev) => prev.filter((obj) => obj.id !== id))
     setClicks((prev) => prev.filter((click) => click.objectId !== id))
     if (selectedObjectId === id) {
@@ -146,7 +165,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
     }
   }
 
-  const handleToggleVisibility = (id: string) => {
+  const handleToggleVisibility = (id: number) => {
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, visible: !obj.visible } : obj)))
   }
 
@@ -221,7 +240,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
             currentFrame={currentFrame}
             clicks={visibleClicks}
             objects={visibleObjects}
-            masks={masks}
+            masks={masks[currentFrame] ?? {}}
             onCanvasClick={handleCanvasClick}
           />
           <Card>
@@ -241,7 +260,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
         {/* Right sidebar with tools */}
         <div className="w-[280px] flex flex-col gap-4 shrink-0">
-          <ClickModeSelector mode={clickMode} onModeChange={setClickMode} disabled={!selectedObjectId} />
+          <ClickModeSelector mode={clickMode} onModeChange={setClickMode} disabled={selectedObjectId === null} />
           <ObjectsPanel
             objects={objects}
             selectedObjectId={selectedObjectId}

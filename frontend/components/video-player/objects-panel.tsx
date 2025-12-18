@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { COCO_CLASSES, getClassColor } from "@/lib/cocos-classes"
 
 interface SegmentObject {
-  id: string
+  id: number
   name: string
   className: string
   labelCount: number
@@ -20,11 +20,11 @@ interface SegmentObject {
 
 interface ObjectsPanelProps {
   objects: SegmentObject[]
-  selectedObjectId: string | null
-  onSelectObject: (id: string | null) => void
+  selectedObjectId: number | null
+  onSelectObject: (id: number | null) => void
   onCreateObject: (name: string, className: string) => void
-  onDeleteObject: (id: string) => void
-  onToggleVisibility: (id: string) => void
+  onDeleteObject: (id: number) => void
+  onToggleVisibility: (id: number) => void
 }
 
 export function ObjectsPanel({

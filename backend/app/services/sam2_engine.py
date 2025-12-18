@@ -12,6 +12,7 @@ class SAM2Engine:
         self.device = self._get_device()
         self.predictor = None
         self.loaded = False
+        self.states = {}
 
     def _get_device(self):
         if torch.cuda.is_available():
@@ -37,9 +38,16 @@ class SAM2Engine:
                 self.predictor = build_sam2_video_predictor(self.model_cfg, self.checkpoint_path, device=torch.device(self.device))
                 self.loaded = True
 
-    def load_video(self, folder_path: str):
+    def load_video_once(self, folder_path: str):
         self.load()
-        return self.predictor.init_state(video_path=folder_path)
+
+        if folder_path not in self.states:
+            self.states[folder_path] = self.predictor.init_state(video_path=folder_path)
+        return self.states[folder_path]
+    
+    def reset_video(self, folder_path: str):
+        if folder_path in self.states:
+            del self.states[folder_path]
 
     @classmethod
     def get_instance(cls):

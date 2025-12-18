@@ -14,6 +14,16 @@ interface SegmentClickParams {
   objectId: number
 }
 
+interface MaskUpdate {
+  objectId: number
+  maskPng: string
+}
+
+interface SegmentationResponse {
+  frame_index: number
+  objects: MaskUpdate[]
+}
+
 export function useLoadSam2() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -62,10 +72,9 @@ export function useLoadSam2() {
 
 export function useSegmentationClick() {
   const [isLoading, setIsLoading] = React.useState(false)
-  const [overlayUrl, setOverlayUrl] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
-  const sendClick = React.useCallback(async (params: SegmentClickParams) => {
+  const sendClick = React.useCallback(async (params: SegmentClickParams): Promise<SegmentationResponse | null> => {
     setIsLoading(true)
     setError(null)
 
@@ -85,11 +94,8 @@ export function useSegmentationClick() {
 
       if (!res.ok) throw new Error(`Server returned ${res.status}`)
       
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob)
-
-      setOverlayUrl(url)
-      return url
+      const data: SegmentationResponse = await res.json()
+      return data
     } catch (err) {
       console.error("Segmentation click failed:", err)
       setError("Segmentation failed")
@@ -99,6 +105,6 @@ export function useSegmentationClick() {
       setIsLoading(false)
     }
   }, [])
-  return { sendClick, overlayUrl, isLoading, error }
+  return { sendClick, isLoading, error }
 
 }

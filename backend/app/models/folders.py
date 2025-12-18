@@ -15,3 +15,5 @@ class FolderMetadata(BaseModel):
     description: str = ""
     upload_date: datetime
     num_frames: int
+    height: int
+    width: int

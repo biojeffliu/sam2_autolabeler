@@ -104,7 +104,7 @@ export default function DatasetDirectory() {
   }
 
   const handleViewInPlayer = (folderName: string) => {
-    window.location.href = `/video-player?folder=${encodeURIComponent(folderName)}`
+    window.location.href = `/player/${encodeURIComponent(folderName)}`
   }
 
   return (

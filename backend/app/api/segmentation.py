@@ -33,7 +33,7 @@ async def load_model(req: LoadModelRequest):
 
     engine = SAM2Engine.get_instance()
     engine.load()
-    state = engine.load_video(str(folder_path))
+    state = engine.load_video_once(str(folder_path))
 
     return {
         "status": "model_loaded",
@@ -54,9 +54,8 @@ async def process_click(req: SegmentRequest):
     folder_path = safe_folder_path(req.folder)
     
     engine = SAM2Engine.get_instance()
-    engine.load()
 
-    state = engine.load_video(str(folder_path))
+    state = engine.load_video_once(str(folder_path))
 
     frame_files = sorted(
         [p for p in folder_path.iterdir() if p.suffix.lower() in [".jpg", ".jpeg", ".png"]],
@@ -93,7 +92,16 @@ async def process_click(req: SegmentRequest):
     if not success:
         raise HTTPException(500, "Failed to encode overlay image")
 
-    return StreamingResponse(io.BytesIO(buffer.tobytes()), media_type="image/jpeg")
+    return {
+        "frame_index": req.frame_index,
+        "objects": [
+            {
+                "object_id": int(obj_id),
+                "mask_png": encode_mask_png(mask),
+            }
+            for obj_id, mask in updated_masks
+        ]
+    }
 
 @router.post("/propagate-masks")
 async def propagate_masks(req: PropagateRequest):
@@ -101,9 +109,8 @@ async def propagate_masks(req: PropagateRequest):
     total_frames = req.total_frames
 
     engine = SAM2Engine.get_instance()
-    engine.load()
 
-    state = engine.load_video(str(folder_path))
+    state = engine.load_video_once(str(folder_path))
 
     frame_files = sorted(
         [p for p in folder_path.iterdir() if p.suffix.lower() in [".jpg", ".jpeg", ".png"]],
@@ -195,3 +202,10 @@ def debug_mask_store():
         "folders": list(MASK_STORE.store.keys()),
         "objs": {folder: list(MASK_STORE.objs[folder].keys()) for folder in MASK_STORE.objs},
     }
+
+def encode_mask_png(mask: np.ndarray) -> str:
+    png = (mask * 255).astype(np.uint8)
+    success, buffer = cv2.imencode(".png", png)
+    if not success:
+        raise RuntimeError("Mask encode failure")
+    return base64.b64encode(buffer).decode("utf-8")

@@ -2,16 +2,18 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 import zipfile
 import shutil
 from app.utils.paths import UPLOADS_DIR
+from app.utils.validation import list_image_files, get_first_image_size
 from pathlib import Path
 import json
+import uuid
 from datetime import datetime
 
 router = APIRouter(prefix="/upload")
 
 @router.post("/")
 async def receive_folder_and_copy(file: UploadFile = File(...)):
-    temp_dir = UPLOADS_DIR / "temp_extract"
-    temp_dir.mkdir(exist_ok=True)
+    temp_dir = UPLOADS_DIR / f"temp_extract_{uuid.uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
     zip_path = temp_dir / file.filename
     with open(zip_path, "wb") as f:
@@ -22,14 +24,15 @@ async def receive_folder_and_copy(file: UploadFile = File(...)):
 
     zip_path.unlink()
 
-    extracted_items = [
-        item for item in temp_dir.iterdir() 
-        if item.is_dir() and not item.name.startswith("__")
-    ]
-    if not extracted_items:
-        raise HTTPException(400, "No folder found inside zip.")
+    folders = [p for p in temp_dir.iterdir() if p.is_dir() and not p.name.startswith("__")]
 
-    original_folder = extracted_items[0]
+    if len(folders) != 1:
+        raise HTTPException(
+            400,
+            "ZIP must contain exactly one root folder with images."
+        )
+
+    original_folder = folders[0]
     original_name = original_folder.name
 
     final_path = UPLOADS_DIR / original_name
@@ -38,23 +41,26 @@ async def receive_folder_and_copy(file: UploadFile = File(...)):
 
     shutil.move(str(original_folder), str(final_path))
 
+    images = list_image_files(final_path)
+
+    width, height = get_first_image_size(final_path)
+
     metadata = {
         "name": original_name,
         "objects": {},
         "description": "",
-        "upload_date": datetime.now().isoformat()
+        "upload_date": datetime.now().isoformat(),
+        "num_frames": len(images),
+        "width": width,
+        "height": height
     }
 
     metadata_path = final_path / "metadata.json"
-
-    try:
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
-    except Exception as e:
-        print(f"Failed to write metadata: {e}")
-
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
+    tmp_metadata = metadata_path.with_suffix(".json.tmp")
+    with open(tmp_metadata, "w") as f:
+        json.dump(metadata, f, indent=2)
+    tmp_metadata.replace(metadata_path)
+    shutil.rmtree(temp_dir)
         
     return {
         "status": "ok",
