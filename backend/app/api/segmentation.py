@@ -80,6 +80,17 @@ async def process_click(req: SegmentRequest):
     for idx, obj_id in enumerate(out_obj_ids):
         prob = torch.sigmoid(out_logits[idx])
         mask = (prob > 0.5).int().squeeze().cpu().numpy().astype(np.uint8)
+        coverage = float(mask.mean())
+        pixels_on = int(mask.sum())
+        h, w = mask.shape
+        print("mask stats:",
+            "obj", int(obj_id),
+            "frame", req.frame_index,
+            "shape", (h, w),
+            "mean", coverage,
+            "on", pixels_on,
+            "pct", 100.0 * pixels_on / (h*w))
+
 
         obj_id = int(obj_id)
         MASK_STORE.save_mask(req.folder, req.frame_index, obj_id, mask)

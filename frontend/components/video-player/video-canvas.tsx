@@ -114,12 +114,17 @@ export function VideoCanvas({
       ctx.save()
 
       ctx.globalAlpha = 0.4
-      ctx.drawImage(mask, 0, 0)
-
-      ctx.globalCompositeOperation = "source-in"
+      console.log(
+        "image:", image.width, image.height,
+        "mask:", mask.width, mask.height
+      )
       ctx.fillStyle = getClassColor(obj.className)
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+      ctx.globalCompositeOperation = "destination-in"
+      ctx.drawImage(mask, 0, 0, canvas.width, canvas.height)
+
+      ctx.globalCompositeOperation = "source-over"
       ctx.restore()
     })
 
