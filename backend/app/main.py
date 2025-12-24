@@ -13,7 +13,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory=str(UPLOADS_DIR)), name="static")
+static_app = CORSMiddleware(
+    StaticFiles(directory=str(UPLOADS_DIR)),
+    allow_origins=["http://localhost:3000", "*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", static_app, name="static")
 
 app.include_router(images.router, prefix="/api")
 app.include_router(folders.router, prefix="/api")

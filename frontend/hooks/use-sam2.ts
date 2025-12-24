@@ -37,7 +37,7 @@ interface FrameMasksResponse {
 export function useLoadSam2() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [modelState, setModelState] = React.useState<any>(null)
+  const [modelState, setModelState] = React.useState<Record<string, unknown> | null>(null)
 
   const loadSam2 = React.useCallback(async (folderName: string) => {
     if (!folderName) return
@@ -130,14 +130,16 @@ export function useFetchFrameMasks() {
   const fetchFrameMasks = React.useCallback(
     async (
       folder: string,
-      frameIdx: number
+      frameIdx: number,
+      signal?: AbortSignal
     ): Promise<Record<number, ImageBitmap> | null> => {
       setIsLoading(true)
       setError(null)
 
       try {
         const res = await fetch(
-          `${BACKEND_URL}/api/segmentation/masks?folder=${folder}&frame_idx=${frameIdx}`
+          `${BACKEND_URL}/api/segmentation/masks?folder=${folder}&frame_idx=${frameIdx}`,
+          { signal }
         )
 
         if (!res.ok) {
@@ -154,6 +156,7 @@ export function useFetchFrameMasks() {
 
         return decoded
       } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return null
         console.error("Mask fetch failed:", e)
         setError("Failed to load masks")
         return null

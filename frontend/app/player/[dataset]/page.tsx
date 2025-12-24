@@ -98,28 +98,53 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
   React.useEffect(() => {
     if (!selectedDataset) return
 
-    // prefetch current + a bit ahead
     const start = currentFrame
-    const end = Math.min(totalFrames - 1, currentFrame + 24)
+    const end = Math.min(totalFrames - 1, currentFrame + 48)
 
-    ;(async () => {
-      for (let f = start; f <= end; f++) {
-        if (maskCacheRef.current.has(f)) continue
-
-        const masks = await fetchFrameMasks(selectedDataset, f)
-        if (!masks) continue
-
-        maskCacheRef.current.set(f, masks)
-        setMaskVersion(v => v + 1)
+    const framesToFetch: number[] = []
+    for (let f = start; f <= end; f++) {
+      if (!maskCacheRef.current.has(f)) {
+        framesToFetch.push(f)
       }
-    })()
+    }
+
+    if (!framesToFetch.length) return
+
+    const controller = new AbortController()
+
+    const prefetchBatch = async () => {
+      const concurrency = 4
+      for (let i = 0; i < framesToFetch.length; i += concurrency) {
+        const batch = framesToFetch.slice(i, i + concurrency)
+        const results = await Promise.all(
+          batch.map((frameIdx) => fetchFrameMasks(selectedDataset, frameIdx, controller.signal))
+        )
+
+        results.forEach((masks, idx) => {
+          if (!masks) return
+          const frameIdx = batch[idx]
+          maskCacheRef.current.set(frameIdx, masks)
+          setMaskVersion((v) => v + 1)
+        })
+      }
+    }
+
+    prefetchBatch()
+
+    return () => controller.abort()
   }, [currentFrame, selectedDataset, totalFrames, fetchFrameMasks])
+
+  React.useEffect(() => {
+    maskCacheRef.current.clear()
+    setMaskVersion((v) => v + 1)
+    setCurrentFrame(0)
+  }, [selectedDataset])
 
   // Handle canvas click
   const { sendClick, isLoading: isSegLoading, error: segError } = useSegmentationClick()
   const handleCanvasClick = React.useCallback(
     async (normalizedX: number, normalizedY: number) => {
-      if (selectedObjectId === null || !isSam2Loaded) return
+      if (selectedObjectId === null || !isSam2Loaded || !currentFolderMetadata) return
       const x = Math.round(normalizedX * currentFolderMetadata.width)
       const y = Math.round(normalizedY * currentFolderMetadata.height)
 
@@ -172,6 +197,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
       clickMode,
       isSam2Loaded,
       sendClick,
+      currentFolderMetadata,
     ]
   )
 

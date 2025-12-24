@@ -40,7 +40,14 @@ export function VideoCanvas({
 }: VideoCanvasProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const overlayRef = React.useRef<HTMLCanvasElement>(null)
   const { getImage, isReady } = useFrameBuffer(images, currentFrame)
+  const [viewport, setViewport] = React.useState<{
+    displayWidth: number
+    displayHeight: number
+    offsetX: number
+    offsetY: number
+  } | null>(null)
 
   const [imageDimensions, setImageDimensions] =
     React.useState<{ width: number; height: number } | null>(null)
@@ -112,62 +119,87 @@ export function VideoCanvas({
     const frameMasks = getMasksForFrame(currentFrame)
     if (!frameMasks) return
 
+    if (!overlayRef.current) {
+      overlayRef.current = document.createElement("canvas")
+    }
+
+    const overlay = overlayRef.current
+    const octx = overlay.getContext("2d")
+    if (!octx) return
+
+    if (overlay.width !== canvas.width || overlay.height !== canvas.height) {
+      overlay.width = canvas.width
+      overlay.height = canvas.height
+    }
+
+    overlay.width = overlay.width
+
     objects.forEach(obj => {
       const mask = frameMasks[obj.id]
       if (!mask) return
 
-      // --- OFFSCREEN LAYER ---
-      const overlay = document.createElement("canvas")
-      overlay.width = canvas.width
-      overlay.height = canvas.height
-
-      const octx = overlay.getContext("2d")!
       octx.clearRect(0, 0, overlay.width, overlay.height)
 
-      // 1. draw mask alpha
       octx.drawImage(mask, 0, 0, overlay.width, overlay.height)
 
-      // 2. colorize masked pixels ONLY
       octx.globalCompositeOperation = "source-in"
       octx.fillStyle = getClassColor(obj.className)
       octx.fillRect(0, 0, overlay.width, overlay.height)
+      octx.globalCompositeOperation = "source-out"
 
-      // --- COMPOSITE ON TOP ---
       ctx.save()
       ctx.globalAlpha = 0.4
       ctx.drawImage(overlay, 0, 0)
       ctx.restore()
     })
 
-  }, [currentFrame, images, objects, getImage, getMasksForFrame, maskVersion])
+  }, [currentFrame, getImage, getMasksForFrame, imageDimensions, maskVersion, objects])
+  
+  React.useEffect(() => {
+    if (!containerRef.current || !imageDimensions) return
+
+    const computeViewport = () => {
+      if (!containerRef.current || !imageDimensions) return
+      const container = containerRef.current.getBoundingClientRect()
+      const imageAspect = imageDimensions.width / imageDimensions.height
+      const containerAspect = container.width / container.height
+
+      let displayWidth: number
+      let displayHeight: number
+      let offsetX: number
+      let offsetY: number
+
+      if (containerAspect > imageAspect) {
+        displayHeight = container.height
+        displayWidth = displayHeight * imageAspect
+        offsetX = (container.width - displayWidth) / 2
+        offsetY = 0
+      } else {
+        displayWidth = container.width
+        displayHeight = displayWidth / imageAspect
+        offsetX = 0
+        offsetY = (container.height - displayHeight) / 2
+      }
+
+      setViewport({
+        displayWidth,
+        displayHeight,
+        offsetX,
+        offsetY,
+      })
+    }
+    computeViewport()
+    const observer = new ResizeObserver(() => computeViewport())
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [imageDimensions])
 
   const renderStars = () => {
-    if (!imageDimensions || !containerRef.current) return null
-
-    const container = containerRef.current.getBoundingClientRect()
-    const imageAspect = imageDimensions.width / imageDimensions.height
-    const containerAspect = container.width / container.height
-
-    let displayWidth: number
-    let displayHeight: number
-    let offsetX: number
-    let offsetY: number
-
-    if (containerAspect > imageAspect) {
-      displayHeight = container.height
-      displayWidth = displayHeight * imageAspect
-      offsetX = (container.width - displayWidth) / 2
-      offsetY = 0
-    } else {
-      displayWidth = container.width
-      displayHeight = displayWidth / imageAspect
-      offsetX = 0
-      offsetY = (container.height - displayHeight) / 2
-    }
+    if (!imageDimensions || !viewport) return null
 
     return clicks.map((click, index) => {
-      const left = offsetX + click.normalizedX * displayWidth
-      const top = offsetY + click.normalizedY * displayHeight
+      const left = viewport.offsetX + click.normalizedX * viewport.displayWidth
+      const top = viewport.offsetY + click.normalizedY * viewport.displayHeight
 
       return (
         <div
