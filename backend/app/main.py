@@ -2,26 +2,35 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import images, upload, folders, segmentation, save
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 from app.utils.paths import UPLOADS_DIR
+from pathlib import Path
 
 app = FastAPI()
 
+cors_config = {
+    "allow_origins": ["*"],
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    **cors_config
 )
 
-class CORSStaticFiles(StaticFiles):
-    async def get_response(self, path, scope):
-        response = await super().get_response(path, scope)
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        return response
+static_files = StaticFiles(directory=str(UPLOADS_DIR))
+static_with_cors = CORSMiddleware(static_files, **cors_config)
+app.mount("/static", static_with_cors, name="static")
 
-app.mount("/static", CORSStaticFiles(directory="static"), name="static")
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("Access-Control-Allow-Origin", "*")
+    response.headers.setdefault("Access-Control-Allow-Methods", "*")
+    response.headers.setdefault("Access-Control-Allow-Headers", "*")
+    return response
+    
 
 app.include_router(images.router, prefix="/api")
 app.include_router(folders.router, prefix="/api")
