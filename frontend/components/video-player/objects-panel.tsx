@@ -1,42 +1,42 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Trash2, Eye, EyeOff } from "lucide-react"
+import { Plus, Trash2, Eye, EyeOff, Folder } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { COCO_CLASSES, getClassColor } from "@/lib/cocos-classes"
-
-interface SegmentObject {
-  id: number
-  name: string
-  className: string
-  labelCount: number
-  visible: boolean
-}
+import { ObjectRow } from "@/components/video-player/object-row"
+import { COCO_CLASSES, CocoClass, getClassColor } from "@/lib/cocos-classes"
+import { SegmentObject } from "@/hooks/use-object-registry"
 
 interface ObjectsPanelProps {
+  folder: string
   objects: SegmentObject[]
   selectedObjectId: number | null
   onSelectObject: (id: number | null) => void
-  onCreateObject: (name: string, className: string) => void
+  onCreateObject: (name: string, className: CocoClass) => void
   onDeleteObject: (id: number) => void
   onToggleVisibility: (id: number) => void
+  registerRefetch: (fn: () => void) => void
+  unregisterRefetch: (fn: () => void) => void
 }
 
 export function ObjectsPanel({
+  folder,
   objects,
   selectedObjectId,
   onSelectObject,
   onCreateObject,
   onDeleteObject,
   onToggleVisibility,
+  registerRefetch,
+  unregisterRefetch
 }: ObjectsPanelProps) {
   const [newObjectName, setNewObjectName] = React.useState("")
-  const [newObjectClass, setNewObjectClass] = React.useState<string>("")
+  const [newObjectClass, setNewObjectClass] = React.useState<CocoClass | "">("")
 
   const handleCreate = () => {
     if (newObjectName.trim() && newObjectClass) {
@@ -60,7 +60,7 @@ export function ObjectsPanel({
             onChange={(e) => setNewObjectName(e.target.value)}
             className="h-8 text-sm"
           />
-          <Select value={newObjectClass} onValueChange={setNewObjectClass}>
+          <Select value={newObjectClass} onValueChange={(value) => setNewObjectClass(value as CocoClass)}>
             <SelectTrigger className="h-8 text-sm">
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
@@ -93,55 +93,17 @@ export function ObjectsPanel({
               <p className="text-sm text-muted-foreground text-center py-4">No objects created</p>
             ) : (
               objects.map((obj) => (
-                <div
+                <ObjectRow
                   key={obj.id}
-                  className={`p-2 rounded-md border cursor-pointer transition-colors ${
-                    selectedObjectId === obj.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => onSelectObject(selectedObjectId === obj.id ? null : obj.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: getClassColor(obj.className) }}
-                      />
-                      <span className="text-sm font-medium truncate">{obj.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onToggleVisibility(obj.id)
-                        }}
-                      >
-                        {obj.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteObject(obj.id)
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {obj.className}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">{obj.labelCount} labels</span>
-                  </div>
-                </div>
+                  folder={folder}
+                  obj={obj}
+                  selected={selectedObjectId === obj.id}
+                  onSelect={() => onSelectObject(selectedObjectId === obj.id ? null : obj.id)}
+                  onDelete={() => onDeleteObject(obj.id)}
+                  onToggleVisibility={() => onToggleVisibility(obj.id)}
+                  registerRefetch={registerRefetch}
+                  unregisterRefetch={unregisterRefetch}
+                />
               ))
             )}
           </div>

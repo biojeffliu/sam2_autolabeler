@@ -15,15 +15,6 @@ import torch
 
 router = APIRouter(prefix="/segmentation", tags=["segmentation"])
 
-MASK_COLORS = [
-    (255, 0, 0),
-    (0, 255, 0),
-    (0, 0, 255),
-    (255, 255, 0),
-    (255, 0, 255),
-    (0, 255, 255),
-]
-
 @router.post("/load-model")
 async def load_model(req: LoadModelRequest):
     folder_path = safe_folder_path(req.folder)
@@ -189,6 +180,21 @@ async def get_masks(folder: str, frame_idx: int):
         "masks": encoded,
     }
 
+@router.get("/object-mask-count")
+def get_object_mask_count(folder: str, obj_id: int):
+    if folder not in MASK_STORE.store:
+        return {"count": 0}
+    count = 0
+    for frame_idx, objs in MASK_STORE.store[folder].items():
+        if obj_id in objs and objs[obj_id] is not None:
+            count += 1
+    
+    return {
+        "folder": folder,
+        "obj_id": obj_id,
+        "count": count
+    }
+
 
 @router.post("/reset-mask")
 async def reset_masks(req: ResetMaskRequest):
@@ -208,7 +214,7 @@ async def reset_masks_folder(req: ResetMasksFolderRequest):
 def debug_mask_store():
     return {
         "folders": list(MASK_STORE.store.keys()),
-        "objs": {folder: list(MASK_STORE.objs[folder].keys()) for folder in MASK_STORE.objs},
+        "objs": {folder: list(MASK_STORE.objects[folder].keys()) for folder in MASK_STORE.objects},
     }
 
 def encode_mask_png(mask: np.ndarray) -> str:

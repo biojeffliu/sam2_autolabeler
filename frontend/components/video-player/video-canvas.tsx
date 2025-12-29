@@ -4,19 +4,13 @@ import * as React from "react"
 import { Star } from "lucide-react"
 import { useFrameBuffer } from "@/hooks/use-frame-buffer"
 import { getClassColor } from "@/lib/cocos-classes"
+import { SegmentObject } from "@/hooks/use-object-registry"
 
 interface Click {
   normalizedX: number
   normalizedY: number
   type: "positive" | "negative"
   objectId: number
-}
-
-interface SegmentObject {
-  id: number
-  name: string
-  className: string
-  labelCount: number
 }
 
 interface VideoCanvasProps {

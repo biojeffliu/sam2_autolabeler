@@ -11,8 +11,10 @@ import { ObjectsPanel } from "@/components/video-player/objects-panel"
 import { ClickModeSelector } from "@/components/video-player/click-mode-selector"
 import { SaveProgressDialog } from "@/components/video-player/save-progress-dialog"
 import { useFetchFolders, useFetchImages, FolderMetadata } from "@/hooks/use-backend"
+import { useObjectRegistry, SegmentObject } from "@/hooks/use-object-registry"
 import { useLoadSam2, usePropagateMasks, useFetchFrameMasks, useSegmentationClick } from "@/hooks/use-sam2"
 import { useSaveSegmentationsYOLO } from "@/hooks/use-save-options"
+import { COCO_CLASSES, CocoClass, cocoClassToId } from "@/lib/cocos-classes"
 
 interface Click {
   normalizedX: number
@@ -22,13 +24,6 @@ interface Click {
   frame: number
 }
 
-interface SegmentObject {
-  id: number
-  name: string
-  className: string
-  labelCount: number
-  visible: boolean
-}
 
 async function decodeMask(maskBase64: string): Promise<ImageBitmap> {
   const blob = await fetch(`data:image/png;base64,${maskBase64}`).then(r => r.blob())
@@ -57,11 +52,17 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
   }, [])
 
   // Objects and clicks state
-  const [objects, setObjects] = React.useState<SegmentObject[]>([])
-  const [selectedObjectId, setSelectedObjectId] = React.useState<number | null>(null)
-  const [nextObjectId, setNextObjectId] = React.useState(0)
   const [clickMode, setClickMode] = React.useState<"positive" | "negative">("positive")
   const [clicks, setClicks] = React.useState<Click[]>([])
+  const {
+    objects,
+    selectedObjectId,
+    createObject,
+    deleteObject,
+    selectObject,
+    toggleVisibility
+  } = useObjectRegistry(selectedDataset)
+  const maskCountRefetchers = React.useRef(new Set<() => void>())
 
   // Saving 
   const [saveJobId, setSaveJobId] = React.useState<string | null>(null)
@@ -146,7 +147,6 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
     setCurrentFrame(0)
   }, [selectedDataset])
 
-  // Handle canvas click
   const { sendClick } = useSegmentationClick()
   const handleCanvasClick = React.useCallback(
     async (normalizedX: number, normalizedY: number) => {
@@ -187,14 +187,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
           frame: currentFrame,
         },
       ])
-
-      setObjects(prev =>
-        prev.map(obj =>
-          obj.id === selectedObjectId 
-            ? { ...obj, labelCount: obj.labelCount + 1 }
-            : obj
-        )
-      )
+      maskCountRefetchers.current.forEach(fn => fn())
     },
     [
       selectedDataset,
@@ -207,34 +200,6 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
     ]
   )
 
-  const handleCreateObject = (name: string, className: string) => {
-    setObjects((prev) => {
-      const newObject: SegmentObject = {
-        id: nextObjectId,
-        name,
-        className,
-        labelCount: 0,
-        visible: true,
-      }
-      return [...prev, newObject]
-    })
-
-    setSelectedObjectId(nextObjectId)
-    setNextObjectId((id) => id + 1)
-  }
-
-  const handleDeleteObject = (id: number) => {
-    setObjects((prev) => prev.filter((obj) => obj.id !== id))
-    setClicks((prev) => prev.filter((click) => click.objectId !== id))
-    if (selectedObjectId === id) {
-      setSelectedObjectId(null)
-    }
-  }
-
-  const handleToggleVisibility = (id: number) => {
-    setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, visible: !obj.visible } : obj)))
-  }
-
   const { propagateMasks, isLoading: isPropagating } = usePropagateMasks()
 
   const handlePropagateMasks = async () => {
@@ -245,6 +210,7 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
 
     maskCacheRef.current.clear()
     setMaskVersion((v) => v + 1)
+    maskCountRefetchers.current.forEach(fn => fn())
   }
 
   // Save labels
@@ -349,12 +315,18 @@ export default function VideoPlayerPage({ params }: { params: Promise<{ dataset:
         <div className="w-[280px] flex flex-col gap-4 shrink-0">
           <ClickModeSelector mode={clickMode} onModeChange={setClickMode} disabled={selectedObjectId === null} />
           <ObjectsPanel
+            folder={selectedDataset}
             objects={objects}
             selectedObjectId={selectedObjectId}
-            onSelectObject={setSelectedObjectId}
-            onCreateObject={handleCreateObject}
-            onDeleteObject={handleDeleteObject}
-            onToggleVisibility={handleToggleVisibility}
+            onSelectObject={selectObject}
+            onCreateObject={(name, classKey) => {
+              const classId = cocoClassToId(classKey)
+              createObject(name, classId, classKey)
+            }}
+            onDeleteObject={deleteObject}
+            onToggleVisibility={toggleVisibility}
+            registerRefetch={(fn) => maskCountRefetchers.current.add(fn)}
+            unregisterRefetch={(fn) => maskCountRefetchers.current.delete(fn)}
           />
         </div>
       </div>

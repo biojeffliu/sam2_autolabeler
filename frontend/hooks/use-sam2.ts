@@ -212,3 +212,50 @@ export function usePropagateMasks() {
   )
   return { propagateMasks, isLoading, error }
 }
+
+export function useObjectMaskCount(
+  folder: string,
+  objectId: number | null
+) {
+  const [count, setCount] = React.useState<number>(0)
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const fetchCount = React.useCallback(async () => {
+    if (!folder || objectId === null) {
+      setCount(0)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(
+        `${BACKEND_URL}/api/segmentation/object-mask-count?folder=${folder}&obj_id=${objectId}`
+      )
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch mask count")
+      }
+
+      const data = await res.json()
+      setCount(data.count ?? 0)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [folder, objectId])
+
+  React.useEffect(() => {
+    fetchCount()
+  }, [fetchCount])
+
+  return {
+    count,
+    loading,
+    error,
+    refetch: fetchCount,
+  }
+}

@@ -70,7 +70,7 @@ async def yolo_progress_stream(job_id: str):
 
 def run_yolo_export(folder: str, req: SaveSegmentationsYOLORequest, job_id: str):
     store = MASK_STORE.store[folder]
-    obj_meta = MASK_STORE.objs.get(folder, {})
+    obj_meta = MASK_STORE.objects.get(folder, {})
 
     save_dir = SEGMENTATIONS_DIR / folder
     labels_dir = save_dir / "labels"
