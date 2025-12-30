@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SAM2 Autolabeler",
-  description: "SAM2 labeler and dataset management app",
+  title: "YOLO Workshop",
+  description: "SAM2 labeler, dataset management, and YOLO fine-tuning app",
 };
 
 export default function RootLayout({

@@ -43,7 +43,7 @@ export function AppSidebar() {
                   alt="AI Racing Tech"
                   className="h-6 w-6"
                 />
-                <span className="ml-2 group-data-[collapsible=icon]:hidden">SAM2 Autolabeler</span>
+                <span className="ml-2 group-data-[collapsible=icon]:hidden">YOLO Workshop</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

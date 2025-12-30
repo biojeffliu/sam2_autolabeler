@@ -1,4 +1,10 @@
 # YOLO Workshop
+<p align="center">
+  <img src="gifs/label_example.gif" alt="SAM2 Labeling Demo" width="800">
+  <br/>
+  <em>SAM2 Labeling on Video Example</em>
+</p>
+
 SAM2 Video autolabeler, fine-tuning, and inference pipeline for YOLOv8-seg using ultralytics.
 This project consists of:
 - **Frontend:** React/Next.js app

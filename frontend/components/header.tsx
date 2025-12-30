@@ -21,7 +21,7 @@ export default function Header() {
               alt="App Icon"
               className="h-6 w-6"
             />
-            <h1 className="text-xl font-bold text-balance">SAM2 Autolabeler</h1>
+            <h1 className="text-xl font-bold text-balance">YOLO Workshop</h1>
           </div>
 
           {/* TODO: Figure out the CSS for dark/light mode */}
