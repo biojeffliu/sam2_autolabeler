@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 from typing import List, Dict
 
-REGISTRY_PATH = Path("models/registry.json")
+REGISTRY_PATH = Path("ml_models/registry.json")
 
 class ModelRegistry:
     def load(self) -> Dict:

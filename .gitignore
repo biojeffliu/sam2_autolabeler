@@ -222,7 +222,8 @@ next-env.d.ts
 backend/app/uploads/**
 backend/app/segmentations/**
 
-backend/app/models/
+backend/app/ml_models/finetuned/**
+backend/app/ml_models/ultralytics/**
 
 # Model files
 backend/checkpoints/**

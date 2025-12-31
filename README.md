@@ -45,3 +45,8 @@ pnpm dev
 ```
 Frontend should now be running at: `http://localhost:3000`
 
+## Video-Player and Segmentation Help
+
+## Model Fine-tuning Help
+
+

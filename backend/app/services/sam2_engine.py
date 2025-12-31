@@ -56,7 +56,7 @@ class SAM2Engine:
                 if cls._instance is None:
                     cls._instance = SAM2Engine(
                         model_cfg="configs/sam2.1/sam2.1_hiera_l.yaml",
-                        checkpoint_path="checkpoints/sam2.1_hiera_large.pt",
+                        checkpoint_path="sam2_checkpoints/sam2.1_hiera_large.pt",
                     )
         return cls._instance
 

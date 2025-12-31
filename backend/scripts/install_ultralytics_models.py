@@ -2,7 +2,8 @@ from pathlib import Path
 from ultralytics import YOLO
 import os
 
-MODELS_DIR = Path("models/ultralytics")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MODELS_DIR = PROJECT_ROOT / "ml_models" / "ultralytics"
 
 # Will support other ultralytics models in the future. Now all you get is YOLOv8 because that's what ART used lmao
 
