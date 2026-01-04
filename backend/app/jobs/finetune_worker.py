@@ -23,7 +23,6 @@ def run_finetune_job(job_id: str, payload: dict):
         mark_job_running(job_id)
         publish_event(job_id, "starting", {})
 
-
         base_model_id = payload["base_model_id"]
         checkpoint = payload.get("checkpoint", "best")
 
