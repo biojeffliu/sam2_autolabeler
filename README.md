@@ -46,6 +46,11 @@ pnpm dev
 Frontend should now be running at: `http://localhost:3000`
 
 ## Video-Player and Segmentation Help
+# Saving segmentations leads to empty datasets
+This issue relates to how the uvicorn server uses multiple workers. The easiest fix is to restart the backend server with 1 worker:
+```bash
+uvicorn app.main:app --reload --workers 1
+```
 
 ## Model Fine-tuning Help
 
