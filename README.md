@@ -28,12 +28,13 @@ cd backend
 uvicorn app.main:app --reload --workers 1
 ```
 Backend should now be running at `http://localhost:8000`
+
 3. Install frontend dependencies via pnpm:
 ```bash
 cd frontend
 pnpm install
 ```
-4. Configure environment variables, create a `.env.local` file if needed
+4. Configure environment variables, create a `.env.local` file in `frontend` if needed
 ```bash
 cat <<EOF > .env.local
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
@@ -46,13 +47,18 @@ pnpm dev
 Frontend should now be running at: `http://localhost:3000`
 
 ## Video-Player and Segmentation Help
-# Saving segmentations leads to empty datasets
+### Saving segmentations leads to empty datasets
 This issue relates to how the uvicorn server uses multiple workers. The easiest fix is to restart the backend server with 1 worker:
 ```bash
 uvicorn app.main:app --reload --workers 1
 ```
 
 ## Model Fine-tuning Help
+
+## Known Limitations
+
+## TODO
+- Support for pose models (figure out labeling service)
 
 ## Sources
 [@ekberndt](https://www.github.com/ekberndt)'s [YOLOv8 Instance Segmentation Fine-Tuning](https://github.com/ekberndt/YOLOv8-Fine-Tune) helped me with the fine-tuning setion of this project.

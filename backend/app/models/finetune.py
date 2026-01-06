@@ -19,7 +19,7 @@ class AugmentationConfig(BaseModel):
     crop_fraction: float = 0.1
 
 class DatasetConfig(BaseModel):
-    train_percentage: float = 1.0
+    train_percentage: float = 0.8
     keep_empty_frames: bool = True
     empty_frame_keep_ratio: float = 0.8
     dataset_weights: dict[str, float] = {}
@@ -43,6 +43,9 @@ class TrainingConfig(BaseModel):
     num_train_loops: int = 1
     img_size: int = 1032
     layer_freeze: int = 0
+    batch_size: int = 16
+    learning_rate: float = 0.01
+    patience: int = 50
 
     dataset: DatasetConfig = DatasetConfig()
     augmentations: AugmentationConfig = AugmentationConfig()

@@ -11,6 +11,7 @@ from app.jobs.store import (
     mark_job_completed,
     is_cancel_requested,
 )
+from app.models.finetune import TrainingConfig
 from app.jobs.dataset_splitter import split_and_build_training_view
 from app.utils.paths import ML_MODELS_DIR
 
@@ -18,7 +19,7 @@ def run_finetune_job(job_id: str, payload: dict):
     svc = ModelService()
     job_dir = ML_MODELS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
-    cfg = payload["training_config"]
+    cfg = TrainingConfig.model_validate(payload["training_config"])
 
     try:
         mark_job_running(job_id)
@@ -35,9 +36,9 @@ def run_finetune_job(job_id: str, payload: dict):
         })
 
         dataset_yaml, dataset_report = split_and_build_training_view(
-            dataset_id=payload["dataset_ids"][0],
+            dataset_id=payload["dataset_ids"],
             job_dir=job_dir,
-            train_ratio=0.8,
+            train_ratio=cfg.dataset.train_percentage,
             seed=payload.get("seed", 42)
         )
 
@@ -69,12 +70,12 @@ def run_finetune_job(job_id: str, payload: dict):
 
         yolo.train(
             data=str(dataset_yaml),
-            epochs=payload["epochs"],
-            imgsz=payload["img_size"],
-            batch=payload["batch_size"],
-            lr0=payload["learning_rate"],
-            patience=payload["patience"],
-            freeze=payload["layer_freeze"],
+            epochs=cfg.epochs,
+            imgsz=cfg.img_size,
+            batch=cfg.batch_size,
+            lr0=cfg.learning_rate,
+            patience=cfg.patience,
+            freeze=cfg.layer_freeze,
             project=str(job_dir),
             name="",
             exist_ok=True,
@@ -93,6 +94,7 @@ def run_finetune_job(job_id: str, payload: dict):
         publish_event(job_id, "failed", {"error": str(e)})
         raise
 
+
 def write_metadata(job_dir: Path, payload: dict):
     meta = {
         "parent_model_id": payload["base_model_id"],
@@ -103,6 +105,7 @@ def write_metadata(job_dir: Path, payload: dict):
 
     with open(job_dir / "metadata.json", "w") as f:
         json.dump(meta, f, indent=2)
+
 
 def write_training_summary(job_dir: Path, start, end):
     summary = {

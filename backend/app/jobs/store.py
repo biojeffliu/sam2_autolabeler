@@ -31,14 +31,27 @@ def load_job(job_id: str) -> Job:
         raise KeyError(job_id)
     return Job.model_validate_json(p.read_text())
 
-def mark_job_running():
-    pass
+def mark_job_running(job_id: str):
+    job = load_job(job_id)
+    job.status = JobStatus.RUNNING
+    job.started_at = datetime.now()
+    job.updated_at = datetime.now()
+    save_job(job)
 
-def mark_job_failed():
-    pass
+def mark_job_failed(job_id: str, error: str):
+    job = load_job(job_id)
+    job.status = JobStatus.FAILED
+    job.error = error
+    job.finished_at = datetime.now()
+    job.updated_at = job.finished_at
+    save_job(job)
 
-def mark_job_completed():
-    pass
+def mark_job_completed(job_id: str):
+    job = load_job(job_id)
+    job.status = JobStatus.COMPLETED
+    job.finished_at = datetime.now()
+    job.updated_at = job.finished_at
+    save_job(job)
 
-def is_cancel_requested():
-    pass
+def is_cancel_requested(job_id: str) -> bool:
+    return (JOBS_DIR / job_id / "cancel.flag").exists()
