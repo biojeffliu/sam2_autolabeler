@@ -11,36 +11,26 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ArrowRight, Database, Layers } from "lucide-react"
+import { useFetchModels, useFetchCheckpoints } from "@/hooks/use-fetch-models"
+// import { useFetchData }
+import type { ModelCheckpoint, YOLOModelMetadata } from "@/lib/model-types"
 import type { FineTuneConfig, ModelSize } from "@/lib/finetune-types"
 
-interface Model {
-  id: string
-  name: string
-  task: string
-  checkpoints: { id: string; name: string; mAP?: number }[]
-}
-
-interface Dataset {
-  id: string
-  name: string
-  frames: number
-}
 
 interface StageConfigureProps {
   config: FineTuneConfig
   onChange: (config: FineTuneConfig) => void
   onNext: () => void
-  models: Model[]
-  datasets: Dataset[]
 }
 
 export function StageConfigure({
   config,
   onChange,
   onNext,
-  models,
-  datasets
 }: StageConfigureProps) {
+  const { models, isLoading: modelsLoading } = useFetchModels()
+  const { checkpoints, isLoading: checkpointsLoading } = useFetchCheckpoints(config.base_model)
+
   const updateConfig = <K extends keyof FineTuneConfig>(key: K, value: FineTuneConfig[K]) => {
     onChange({ ...config, [key]: value })
   }

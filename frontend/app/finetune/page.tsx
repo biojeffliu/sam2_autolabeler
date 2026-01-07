@@ -3,7 +3,6 @@
 import * as React from "react"
 import { StageStepper } from "@/components/finetune/stage-stepper"
 import { StageConfigure } from "@/components/finetune/stage-configure"
-import { useFetchModels } from "@/hooks/use-fetch-models"
 
 const stages = [
   { id: 1, name: "Configure", description: "Set up training" },
@@ -18,7 +17,7 @@ export default function FineTunePage() {
 
 
   // Hooks
-  const { models, isLoading: modelsLoading } = useFetchModels()
+
 
   const handleStageClick = (stage: number) => {
     if (completedStages.includes(stage) || stage === currentStage) {
@@ -46,8 +45,6 @@ export default function FineTunePage() {
           config={config}
           onChange={setConfig}
           onNext={handleConfigNext}
-          models={models}
-          datasets={}
         />
       )}
     </div>

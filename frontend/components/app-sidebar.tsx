@@ -42,6 +42,8 @@ export function AppSidebar() {
                 <Image
                   src="/icon.ico"
                   alt="AI Racing Tech"
+                  width={24}
+                  height={24}
                   className="h-6 w-6"
                 />
                 <span className="ml-2 group-data-[collapsible=icon]:hidden">YOLO Workshop</span>

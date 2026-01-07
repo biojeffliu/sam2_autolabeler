@@ -1,6 +1,9 @@
 from pathlib import Path
 import torch
 import threading
+from app.utils.paths import ML_MODELS_DIR
+
+SAM2_CHECKPOINTS_DIR = ML_MODELS_DIR / "checkpoints"
 
 class SAM2Engine:
     _instance = None
@@ -55,8 +58,8 @@ class SAM2Engine:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = SAM2Engine(
-                        model_cfg="configs/sam2.1/sam2.1_hiera_l.yaml",
-                        checkpoint_path="sam2_checkpoints/sam2.1_hiera_large.pt",
+                        model_cfg=str("configs/sam2.1/sam2.1_hiera_l"),
+                        checkpoint_path=str(SAM2_CHECKPOINTS_DIR / "sam2.1_hiera_large.pt"),
                     )
         return cls._instance
 

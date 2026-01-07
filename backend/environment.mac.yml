@@ -1,0 +1,52 @@
+name: yolo_workshop
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pillow
+  - pyyaml
+  - requests
+  - scipy
+  - sympy
+  - networkx
+  - psutil
+  - setuptools
+  - wheel
+
+  - pip:
+      # PyTorch for Apple Silicon (MPS)
+      - torch
+      - torchvision
+      - torchaudio
+
+      # YOLO / CV
+      - ultralytics
+      - ultralytics-thop
+      - sam2
+      - samv2
+      - iopath
+      - hydra-core
+      - omegaconf
+
+      # Backend
+      - fastapi
+      - uvicorn
+      - uvloop
+      - httptools
+      - watchfiles
+      - fastapi-cli
+      - fastapi-cloud-cli
+      - email-validator
+      - sentry-sdk
+
+      # Dev / utils
+      - rich-toolkit
+      - pytest
+      - polars
+      - polars-runtime-32
+      - rignore
+      - click
