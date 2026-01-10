@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -34,6 +35,22 @@ export function StageConfigure({
 
   const updateConfig = <K extends keyof FineTuneConfig>(key: K, value: FineTuneConfig[K]) => {
     onChange({ ...config, [key]: value })
+  }
+
+  const getBaseModelForSize = React.useCallback(
+    (size: ModelSize) => {
+      const match = models.find(
+        (model) =>
+          model.source === "ultralytics" &&
+          model.task === "segment" &&
+          model.size === size,
+      )
+      return match?.id ?? ""
+    }, [models])
+
+  const updateModelSize = (size: ModelSize) => {
+    const baseModelId = getBaseModelForSize(size)
+    onChange({ ...config, model_size: size, base_model: baseModelId})
   }
 
   const updateAugmentation = (key: string, value: number) => {
@@ -84,7 +101,7 @@ export function StageConfigure({
       },
     })
   }
-  
+
   const toggleDataset = (datasetId: string) => {
     const current = config.datasets
     if (current.includes(datasetId)) {
@@ -99,6 +116,14 @@ export function StageConfigure({
 
   const selectedModel = models.find((m) => m.id === config.base_model)
   const isValid = config.datasets.length > 0 && (config.resume || config.model_size)
+
+  React.useEffect(() => {
+    if (config.resume) return
+    const baseModelId = getBaseModelForSize(config.model_size)
+    if (baseModelId && baseModelId !== config.base_model) {
+      onChange({ ...config, base_model: baseModelId })
+    }
+  }, [config.base_model, config.model_size, config.resume, getBaseModelForSize, onChange, config])
 
   return (
     <div className="space-y-6">
@@ -182,7 +207,7 @@ export function StageConfigure({
                     key={size}
                     type="button"
                     variant={config.model_size === size ? "default" : "outline"}
-                    onClick={() => updateConfig("model_size", size)}
+                    onClick={() => updateModelSize(size)}
                     className="flex flex-col h-auto py-3"
                   >
                     <span className="text-lg font-bold uppercase">{size}</span>
